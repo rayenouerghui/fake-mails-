@@ -261,6 +261,24 @@
     color: var(--blue);
   }
   .meet-link { color: #1155cc; word-break: break-all; }
+
+  /* ============ REPLY BLOCK ============ */
+  .reply-thread {
+    margin-top: 18px;
+    border-top: 1px solid #dadce0;
+    padding-top: 14px;
+  }
+  .reply-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .reply-sender-bold { font-weight: bold; font-size: 12.5px; color: #202124; }
+  .reply-datetime-right { font-size: 12px; color: #5f6368; white-space: nowrap; }
+  .reply-to-line { font-size: 12px; color: #202124; margin-bottom: 10px; }
+  .reply-body-text { font-size: 13.5px; color: #202124; line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-bottom: 6px; }
+  .reply-quoted { font-size: 12px; color: #5f6368; }
 </style>
 </head>
 <body>
@@ -339,6 +357,32 @@
       </div>
     </div>
 
+    <!-- Reply block (shown after template is selected) -->
+    <div id="replySection" class="conditional-block" style="display:none;">
+      <div class="field" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <input type="checkbox" id="includeReply" style="width:auto;margin:0;">
+        <label for="includeReply" style="margin:0;font-size:13px;font-weight:bold;cursor:pointer;">Include a reply email</label>
+      </div>
+      <div id="replyFields" style="display:none;">
+        <div class="field">
+          <label for="replyName">Reply sender name</label>
+          <input type="text" id="replyName" placeholder="e.g. Yosr Abidi">
+        </div>
+        <div class="field">
+          <label for="replyEmail">Reply sender email</label>
+          <input type="email" id="replyEmail" placeholder="e.g. yosr@example.com">
+        </div>
+        <div class="field">
+          <label for="replyDate">Reply date &amp; time</label>
+          <input type="datetime-local" id="replyDate" value="2026-08-25T14:00">
+        </div>
+        <div class="field">
+          <label for="replyText">Reply message</label>
+          <textarea id="replyText" rows="4" style="width:100%;padding:9px 10px;font-size:13.5px;border:1px solid #dadce0;border-radius:6px;font-family:Arial,Helvetica,sans-serif;resize:vertical;" placeholder="e.g. Thank you, I will be attending.">Thank you for the invitation, I will be attending.</textarea>
+        </div>
+      </div>
+    </div>
+
     <button type="button" class="download-btn" id="downloadBtn" disabled>Choose a template above to continue</button>
     <div class="status-msg" id="statusMsg"></div>
   </div>
@@ -368,6 +412,13 @@ const els = {
   visaFields: document.getElementById('visaFields'),
   noVisaFields: document.getElementById('noVisaFields'),
   debriefFields: document.getElementById('debriefFields'),
+  replySection: document.getElementById('replySection'),
+  includeReply: document.getElementById('includeReply'),
+  replyFields: document.getElementById('replyFields'),
+  replyName: document.getElementById('replyName'),
+  replyEmail: document.getElementById('replyEmail'),
+  replyDate: document.getElementById('replyDate'),
+  replyText: document.getElementById('replyText'),
   toEmail: document.getElementById('toEmail'),
   epName: document.getElementById('epName'),
   epId: document.getElementById('epId'),
@@ -434,6 +485,21 @@ function footerHtml(pageNo, totalPages){
   return `<div class="print-footer"><span class="url">${GMAIL_URL}</span><span class="pageno">${pageNo}/${totalPages}</span></div>`;
 }
 
+function replyBlockHtml(data){
+  if(!data.includeReply) return '';
+  return `
+  <div class="reply-thread">
+    <div class="reply-meta-row">
+      <span class="reply-sender-bold">${escapeHtml(data.replyName)} &lt;${escapeHtml(data.replyEmail)}&gt;<br><span style="font-weight:normal;">To: ${escapeHtml(data.toEmail)}</span></span>
+      <span class="reply-datetime-right">${escapeHtml(data.replyDateFormatted)}</span>
+    </div>
+    <div style="margin-top:10px;">
+      <div class="reply-body-text">${escapeHtml(data.replyText)}</div>
+      <div class="reply-quoted">[Quoted text hidden]</div>
+    </div>
+  </div>`;
+}
+
 function buildVisaRequiredPages(data){
   const page1Body = `
   <div class="body-text">
@@ -468,7 +534,7 @@ function buildVisaRequiredPages(data){
   </div>`;
   const title = 'Visa Application Steps';
   const page1 = `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${page1Body}${footerHtml(1,2)}</div>`;
-  const page2 = `<div class="page">${printHeaderHtml(title)}${page2Body}${footerHtml(2,2)}</div>`;
+  const page2 = `<div class="page">${printHeaderHtml(title)}${page2Body}${replyBlockHtml(data)}${footerHtml(2,2)}</div>`;
   return page1 + page2;
 }
 
@@ -489,7 +555,7 @@ function buildNoVisaPage(data){
     <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
     <p>52129657</p>
   </div>`;
-  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${footerHtml(1,1)}</div>`;
+  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
 function buildDebriefPage(data){
@@ -519,7 +585,7 @@ function buildDebriefPage(data){
     <p style="margin-bottom:2px;">rayen.ouerghui@aiesec.net</p>
     <p>+216 52129657</p>
   </div>`;
-  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${footerHtml(1,1)}</div>`;
+  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
 function currentData(){
@@ -533,7 +599,12 @@ function currentData(){
     hostCountry: els.hostCountry.value.trim(),
     debriefDate: els.debriefDate.value.trim(),
     debriefTime: els.debriefTime.value.trim(),
-    debriefLink: els.debriefLink.value.trim()
+    debriefLink: els.debriefLink.value.trim(),
+    includeReply: els.includeReply.checked,
+    replyName: els.replyName.value.trim(),
+    replyEmail: els.replyEmail.value.trim(),
+    replyDateFormatted: formatSendDate(els.replyDate.value),
+    replyText: els.replyText.value
   };
 }
 
@@ -544,6 +615,7 @@ function setTemplate(tpl){
   els.visaFields.style.display = 'none';
   els.noVisaFields.style.display = 'none';
   els.debriefFields.style.display = 'none';
+  els.replySection.style.display = 'block';
 
   if(tpl === 'visa'){
     els.tplVisa.classList.add('active');
@@ -578,8 +650,14 @@ els.tplVisa.addEventListener('click', () => setTemplate('visa'));
 els.tplNoVisa.addEventListener('click', () => setTemplate('novisa'));
 els.tplDebrief.addEventListener('click', () => setTemplate('debrief'));
 
+els.includeReply.addEventListener('change', () => {
+  els.replyFields.style.display = els.includeReply.checked ? 'block' : 'none';
+  render();
+});
+
 [els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
- els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink
+ els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink,
+ els.replyName, els.replyEmail, els.replyDate, els.replyText
 ].forEach(el => el.addEventListener('input', render));
 
 els.downloadBtn.addEventListener('click', async () => {
