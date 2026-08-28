@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIESEC Visa Email Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --blue:#1155cc;
+    --accent:#037ef3;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #f3f4f6;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #202124;
+  }
+
+  /* ============ APP SHELL ============ */
+  .app {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 28px 20px 60px 20px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 980px) {
+    .app { grid-template-columns: 1fr; }
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0 0 4px 0;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #5f6368;
+    margin: 0 0 20px 0;
+  }
+
+  .panel {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    height: fit-content;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: bold;
+    color: #3c4043;
+    margin-bottom: 5px;
+  }
+  .field input {
+    width: 100%;
+    padding: 9px 10px;
+    font-size: 13.5px;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(3,126,243,0.15);
+  }
+  .field .hint {
+    font-size: 11px;
+    color: #80868b;
+    margin-top: 4px;
+  }
+
+  /* Visa toggle */
+  .visa-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .visa-btn {
+    flex: 1;
+    padding: 11px 10px;
+    border-radius: 8px;
+    border: 2px solid #dadce0;
+    background: #fff;
+    font-size: 13.5px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #5f6368;
+    text-align: center;
+    transition: all .15s ease;
+  }
+  .visa-btn.active-yes {
+    border-color: var(--accent);
+    background: #e8f0fe;
+    color: var(--blue);
+  }
+  .visa-btn.active-no {
+    border-color: #34a853;
+    background: #e6f4ea;
+    color: #188038;
+  }
+
+  .conditional-block {
+    border-top: 1px dashed #dadce0;
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+
+  .download-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14.5px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: background .15s ease;
+  }
+  .download-btn:hover { background: #0263c4; }
+  .download-btn:disabled { background: #b8c6d9; cursor: not-allowed; }
+
+  .status-msg {
+    font-size: 12px;
+    text-align: center;
+    margin-top: 10px;
+    color: #5f6368;
+    min-height: 14px;
+  }
+
+  /* ============ PREVIEW COLUMN ============ */
+  .preview-col {
+    min-width: 0;
+  }
+  .preview-scale-wrap {
+    background: #e5e5e5;
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  /* ---- Replica page styles (mirrors the print replica) ---- */
+  .page-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .page {
+    width: 8.5in;
+    min-height: 11in;
+    background: #ffffff;
+    position: relative;
+    padding: 0.45in 0.55in 0.55in 0.55in;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    margin-bottom: 24px;
+    flex-shrink: 0;
+  }
+  .page-wrap.exporting .page {
+    box-shadow: none;
+    margin-bottom: 0;
+  }
+  .page:not(:last-child) {
+    page-break-after: always;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #5f6368;
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+  }
+  .print-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #5f6368;
+    position: absolute;
+    left: 0.55in;
+    right: 0.55in;
+    bottom: 0.3in;
+    gap: 12px;
+  }
+  .print-footer .url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .print-footer .pageno { flex-shrink: 0; }
+
+  .gmail-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .aiesec-mini-logo { height: 22px; display: block; }
+  .thread-sender { font-size: 13px; font-weight: bold; color: #202124; }
+
+  hr.sep { border: none; border-top: 1px solid #dadce0; margin: 0 0 14px 0; }
+
+  .subject { font-size: 20px; font-weight: 400; color: #202124; margin: 0 0 2px 0; }
+  .message-count { font-size: 12px; color: #5f6368; margin: 0 0 16px 0; }
+
+  .meta-block {
+    font-size: 12.5px;
+    color: #202124;
+    line-height: 1.6;
+    margin-bottom: 30px;
+  }
+  .meta-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .meta-sender-name { font-weight: bold; }
+  .meta-datetime { color: #5f6368; white-space: nowrap; }
+
+  .email-body-logo { height: 54px; display: block; margin: 0 0 70px 0; }
+  .body-text { font-size: 14px; color: #202124; line-height: 1.7; }
+  .body-text p { margin: 0 0 16px 0; }
+  .body-text ul { margin: 0 0 16px 0; padding-left: 20px; }
+  .body-text li { margin: 0 0 4px 0; }
+  .heading-blue { font-weight: bold; color: #1155cc; margin: 0 0 12px 0; }
+  .subhead { font-weight: bold; color: #202124; margin: 0 0 4px 0; }
+  .name-blue { color: #1155cc; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ CONTROLS PANEL ============ -->
+  <div class="panel">
+    <h1>AIESEC Visa Email Generator</h1>
+    <p class="subtitle">Fill in the details below, preview it live, then download the exact printed-Gmail replica as a PDF.</p>
+
+    <div class="field">
+      <label>Is a visa required for this country?</label>
+      <div class="visa-toggle">
+        <button type="button" id="btnYes" class="visa-btn">Visa required</button>
+        <button type="button" id="btnNo" class="visa-btn">No visa needed</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="toEmail">To (recipient inbound address)</label>
+      <input type="email" id="toEmail" value="p_e311267d635ff8f930259f045927ba6bb98195eb@inbound.aiesec.org" placeholder="p_xxxxxxxxxxxxxxxxxxxxxxxx@inbound.aiesec.org">
+    </div>
+
+    <div class="field">
+      <label for="epName">EP Name</label>
+      <input type="text" id="epName" value="ahmed Sfaihi" placeholder="e.g. ahmed Sfaihi">
+    </div>
+
+    <div class="field">
+      <label for="epId">EP ID</label>
+      <input type="text" id="epId" value="6192730" placeholder="e.g. 6192730">
+    </div>
+
+    <div class="field">
+      <label for="sendDate">Date &amp; time the email was sent</label>
+      <input type="datetime-local" id="sendDate" value="2026-08-25T12:41">
+      <div class="hint" id="dateHint">Will display as: Tue, Aug 25, 2026 at 12:41 PM</div>
+    </div>
+
+    <div id="noVisaFields" class="conditional-block" style="display:none;">
+      <div class="field">
+        <label for="lcName">Host LC Name</label>
+        <input type="text" id="lcName" placeholder="e.g. AIESEC in Barcelona">
+      </div>
+      <div class="field">
+        <label for="hostCountry">Host Country</label>
+        <input type="text" id="hostCountry" placeholder="e.g. Spain">
+      </div>
+    </div>
+
+    <button type="button" class="download-btn" id="downloadBtn" disabled>Choose visa status above to continue</button>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <!-- ============ LIVE PREVIEW ============ -->
+  <div class="preview-col">
+    <div class="preview-scale-wrap">
+      <div class="page-wrap" id="previewRoot">
+        <!-- pages injected by JS -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const LOGO_SRC = "Blue-Logo (1).png";
+const GMAIL_URL = "https://mail.google.com/mail/u/4/?ik=fddebf9a8a&amp;view=pt&amp;search=all&amp;permthid=thread-f:1874495397071311277&amp;simpl=msg-f:1874495397071311277";
+
+let visaRequired = null; // true | false
+
+const els = {
+  btnYes: document.getElementById('btnYes'),
+  btnNo: document.getElementById('btnNo'),
+  toEmail: document.getElementById('toEmail'),
+  epName: document.getElementById('epName'),
+  epId: document.getElementById('epId'),
+  sendDate: document.getElementById('sendDate'),
+  dateHint: document.getElementById('dateHint'),
+  noVisaFields: document.getElementById('noVisaFields'),
+  lcName: document.getElementById('lcName'),
+  hostCountry: document.getElementById('hostCountry'),
+  downloadBtn: document.getElementById('downloadBtn'),
+  statusMsg: document.getElementById('statusMsg'),
+  previewRoot: document.getElementById('previewRoot')
+};
+
+function escapeHtml(str){
+  return (str || '').replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function formatSendDate(value){
+  if(!value) return '';
+  const d = new Date(value);
+  if(isNaN(d.getTime())) return '';
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let h = d.getHours();
+  const min = String(d.getMinutes()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h === 0) h = 12;
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${h}:${min} ${ampm}`;
+}
+
+function formatPrintTimestamp(date){
+  const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+  const mm = date.getMonth() + 1;
+  const dd = date.getDate();
+  const yy = String(date.getFullYear()).slice(-2);
+  let h = date.getHours();
+  const min = String(date.getMinutes()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h === 0) h = 12;
+  return `${mm}/${dd}/${yy}, ${h}:${min} ${ampm}`;
+}
+
+function printHeaderHtml(){
+  const ts = formatPrintTimestamp(new Date());
+  return `<div class="print-header"><span>${ts}</span><span>AIESEC Mail - Visa Application Steps — AIESEC BARDO</span></div>`;
+}
+
+function metaBlockHtml(toEmail, sendDateFormatted){
+  return `
+  <div class="gmail-top-row">
+    <img class="aiesec-mini-logo" src="${LOGO_SRC}" alt="AIESEC" />
+    <span class="thread-sender">Rayen Ouerghui &lt;rayenouerghui@aiesec.net&gt;</span>
+  </div>
+  <hr class="sep">
+  <p class="subject">Visa Application Steps — AIESEC BARDO</p>
+  <p class="message-count">1 message</p>
+  <div class="meta-block">
+    <div class="meta-row-top">
+      <span class="meta-sender-name">AIESEC BARDO &lt;rayenouerghui@aiesec.net&gt;</span>
+      <span class="meta-datetime">${escapeHtml(sendDateFormatted)}</span>
+    </div>
+    <div>To: ${escapeHtml(toEmail)}</div>
+  </div>
+  <img class="email-body-logo" src="${LOGO_SRC}" alt="AIESEC" />`;
+}
+
+function footerHtml(pageNo, totalPages){
+  return `<div class="print-footer"><span class="url">${GMAIL_URL}</span><span class="pageno">${pageNo}/${totalPages}</span></div>`;
+}
+
+function buildVisaRequiredPages(data){
+  const page1Body = `
+  <div class="body-text">
+    <p>Dear <strong class="name-blue">${escapeHtml(data.epName)}</strong> (${escapeHtml(data.epId)}),</p>
+    <p>I hope this email finds you well.</p>
+    <p>As you prepare for this exciting journey abroad, one of the most important steps is securing the appropriate visa for your host country.</p>
+    <p>To support you in this process, please find below the key information and attached resources to help you complete your visa application smoothly.</p>
+    <p class="heading-blue">Visa Application Steps</p>
+    <p class="subhead">1. Review the Requirements:</p>
+    <p>Carefully read the attached visa guidelines and visit the official embassy or consulate website of your host country for the most up-to-date information.</p>
+    <p class="subhead">2. Prepare Your Documents:</p>
+    <p style="margin-bottom:8px;">You will typically need the following:</p>
+    <ul>
+      <li>A valid passport (at least 6 months before expiration)</li>
+      <li>Letter of Acceptance from the host entity</li>
+      <li>Proof of financial means</li>
+      <li>Health insurance</li>
+      <li>Visa application form</li>
+    </ul>
+  </div>`;
+
+  const page2Body = `
+  <div class="body-text">
+    <p class="subhead">3. Submit Your Application:</p>
+    <p>Once your documents are ready, schedule an appointment or follow the submission process indicated by the embassy/consulate.</p>
+    <p>If you have any questions or face any difficulties during the process, please don't hesitate to reach out — we're here to assist you every step of the way.</p>
+    <p>Thank you for your attention, and we wish you the best of luck with your visa application!</p>
+    <p style="margin-bottom:2px;">Best regards,</p>
+    <p style="margin-bottom:2px;"><strong class="name-blue">Rayen Ouerghui</strong></p>
+    <p style="margin-bottom:2px;">TL OGT | AIESEC BARDO</p>
+    <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
+    <p>52129657</p>
+  </div>`;
+
+  const page1 = `<div class="page">${printHeaderHtml()}${metaBlockHtml(data.toEmail, data.sendDateFormatted)}${page1Body}${footerHtml(1,2)}</div>`;
+  const page2 = `<div class="page">${printHeaderHtml()}${page2Body}${footerHtml(2,2)}</div>`;
+  return page1 + page2;
+}
+
+function buildNoVisaPage(data){
+  const body = `
+  <div class="body-text">
+    <p>Dear <strong class="name-blue">${escapeHtml(data.epName)}</strong> (${escapeHtml(data.epId)}),</p>
+    <p>I hope this email finds you well.</p>
+    <p>Congratulations once again on your upcoming AIESEC experience with <strong>${escapeHtml(data.lcName)}</strong>, ${escapeHtml(data.hostCountry)}!</p>
+    <p>We're happy to inform you that no visa is required for your travel to this country, which means your preparation will be smoother and faster.</p>
+    <p>Even though a visa isn't required, we strongly encourage you to double-check your travel requirements on the official embassy or consulate website to avoid any last-minute surprises.</p>
+    <p>If you need any assistance, feel free to reach out to us — we're always here to support you 💙</p>
+    <p>Wishing you safe travels and a wonderful experience ahead!</p>
+    <p style="margin-bottom:2px;">Best regards,</p>
+    <p style="margin-bottom:2px;"><strong class="name-blue">Rayen Ouerghui</strong></p>
+    <p style="margin-bottom:2px;">TL OGT | AIESEC BARDO</p>
+    <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
+    <p>52129657</p>
+  </div>`;
+  return `<div class="page">${printHeaderHtml()}${metaBlockHtml(data.toEmail, data.sendDateFormatted)}${body}${footerHtml(1,1)}</div>`;
+}
+
+function currentData(){
+  return {
+    toEmail: els.toEmail.value.trim(),
+    epName: els.epName.value.trim(),
+    epId: els.epId.value.trim(),
+    sendDateFormatted: formatSendDate(els.sendDate.value),
+    lcName: els.lcName.value.trim(),
+    hostCountry: els.hostCountry.value.trim()
+  };
+}
+
+function render(){
+  els.dateHint.textContent = 'Will display as: ' + (formatSendDate(els.sendDate.value) || '—');
+
+  if(visaRequired === null){
+    els.previewRoot.innerHTML = '';
+    els.downloadBtn.disabled = true;
+    els.downloadBtn.textContent = 'Choose visa status above to continue';
+    return;
+  }
+
+  const data = currentData();
+  els.previewRoot.innerHTML = visaRequired ? buildVisaRequiredPages(data) : buildNoVisaPage(data);
+  els.downloadBtn.disabled = false;
+  els.downloadBtn.textContent = 'Download PDF';
+}
+
+els.btnYes.addEventListener('click', () => {
+  visaRequired = true;
+  els.btnYes.classList.add('active-yes');
+  els.btnNo.classList.remove('active-no');
+  els.noVisaFields.style.display = 'none';
+  render();
+});
+
+els.btnNo.addEventListener('click', () => {
+  visaRequired = false;
+  els.btnNo.classList.add('active-no');
+  els.btnYes.classList.remove('active-yes');
+  els.noVisaFields.style.display = 'block';
+  render();
+});
+
+[els.toEmail, els.epName, els.epId, els.sendDate, els.lcName, els.hostCountry].forEach(el => {
+  el.addEventListener('input', render);
+});
+
+els.downloadBtn.addEventListener('click', async () => {
+  if(visaRequired === null) return;
+  const wrap = els.previewRoot;
+  wrap.classList.add('exporting');
+  els.downloadBtn.disabled = true;
+  els.statusMsg.textContent = 'Generating PDF…';
+
+  const data = currentData();
+  const namePart = (data.epName || 'EP').replace(/[^a-z0-9]+/gi, '_');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+    const pages = wrap.querySelectorAll('.page');
+
+    for(let i = 0; i < pages.length; i++){
+      const canvas = await html2canvas(pages[i], {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: pages[i].offsetWidth,
+        height: pages[i].offsetHeight
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      if(i > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11);
+    }
+
+    pdf.save(`AIESEC_Visa_Email_${namePart}.pdf`);
+    wrap.classList.remove('exporting');
+    els.downloadBtn.disabled = false;
+    els.statusMsg.textContent = 'PDF downloaded ✓';
+    setTimeout(() => { els.statusMsg.textContent = ''; }, 3000);
+  } catch(err) {
+    wrap.classList.remove('exporting');
+    els.downloadBtn.disabled = false;
+    els.statusMsg.textContent = 'Something went wrong generating the PDF.';
+    console.error(err);
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
