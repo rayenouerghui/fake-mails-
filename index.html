@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIESEC Visa Email Generator</title>
+<title>AIESEC Email Generator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -235,6 +235,32 @@
   .heading-blue { font-weight: bold; color: #1155cc; margin: 0 0 12px 0; }
   .subhead { font-weight: bold; color: #202124; margin: 0 0 4px 0; }
   .name-blue { color: #1155cc; }
+
+  /* ============ TEMPLATE SELECTOR ============ */
+  .template-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .tpl-btn {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 2px solid #dadce0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #5f6368;
+    text-align: left;
+    transition: all .15s ease;
+  }
+  .tpl-btn.active {
+    border-color: var(--accent);
+    background: #e8f0fe;
+    color: var(--blue);
+  }
+  .meet-link { color: #1155cc; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -243,39 +269,50 @@
 
   <!-- ============ CONTROLS PANEL ============ -->
   <div class="panel">
-    <h1>AIESEC Visa Email Generator</h1>
-    <p class="subtitle">Fill in the details below, preview it live, then download the exact printed-Gmail replica as a PDF.</p>
+    <h1>AIESEC Email Generator</h1>
+    <p class="subtitle">Choose a template, fill in the details, preview live, then download as PDF.</p>
 
+    <!-- Template selector -->
     <div class="field">
-      <label>Is a visa required for this country?</label>
-      <div class="visa-toggle">
-        <button type="button" id="btnYes" class="visa-btn">Visa required</button>
-        <button type="button" id="btnNo" class="visa-btn">No visa needed</button>
+      <label>Template</label>
+      <div class="template-selector">
+        <button type="button" class="tpl-btn" id="tplVisa">📋 Visa Application Steps</button>
+        <button type="button" class="tpl-btn" id="tplNoVisa">✅ No Visa Needed</button>
+        <button type="button" class="tpl-btn" id="tplDebrief">🎓 Invitation to the Debrief</button>
       </div>
     </div>
 
-    <div class="field">
-      <label for="toEmail">To (recipient inbound address)</label>
-      <input type="email" id="toEmail" value="p_e311267d635ff8f930259f045927ba6bb98195eb@inbound.aiesec.org" placeholder="p_xxxxxxxxxxxxxxxxxxxxxxxx@inbound.aiesec.org">
+    <!-- Common fields -->
+    <div id="commonFields" style="display:none;">
+      <div class="field">
+        <label for="toEmail">To (recipient address)</label>
+        <input type="email" id="toEmail" placeholder="recipient@example.com">
+      </div>
+      <div class="field">
+        <label for="epName">EP Name</label>
+        <input type="text" id="epName" placeholder="e.g. Yosr Abidi">
+      </div>
+      <div class="field">
+        <label for="sendDate">Date &amp; time the email was sent</label>
+        <input type="datetime-local" id="sendDate" value="2026-08-25T12:41">
+        <div class="hint" id="dateHint">Will display as: Tue, Aug 25, 2026 at 12:41 PM</div>
+      </div>
     </div>
 
-    <div class="field">
-      <label for="epName">EP Name</label>
-      <input type="text" id="epName" value="ahmed Sfaihi" placeholder="e.g. ahmed Sfaihi">
+    <!-- Visa-required extra fields -->
+    <div id="visaFields" class="conditional-block" style="display:none;">
+      <div class="field">
+        <label for="epId">EP ID</label>
+        <input type="text" id="epId" placeholder="e.g. 6192730">
+      </div>
     </div>
 
-    <div class="field">
-      <label for="epId">EP ID</label>
-      <input type="text" id="epId" value="6192730" placeholder="e.g. 6192730">
-    </div>
-
-    <div class="field">
-      <label for="sendDate">Date &amp; time the email was sent</label>
-      <input type="datetime-local" id="sendDate" value="2026-08-25T12:41">
-      <div class="hint" id="dateHint">Will display as: Tue, Aug 25, 2026 at 12:41 PM</div>
-    </div>
-
+    <!-- No-visa extra fields -->
     <div id="noVisaFields" class="conditional-block" style="display:none;">
+      <div class="field">
+        <label for="epId2">EP ID</label>
+        <input type="text" id="epId2" placeholder="e.g. 6192730">
+      </div>
       <div class="field">
         <label for="lcName">Host LC Name</label>
         <input type="text" id="lcName" placeholder="e.g. AIESEC in Barcelona">
@@ -286,7 +323,23 @@
       </div>
     </div>
 
-    <button type="button" class="download-btn" id="downloadBtn" disabled>Choose visa status above to continue</button>
+    <!-- Debrief extra fields -->
+    <div id="debriefFields" class="conditional-block" style="display:none;">
+      <div class="field">
+        <label for="debriefDate">Debrief Date</label>
+        <input type="text" id="debriefDate" value="10/03/2026" placeholder="e.g. 10/03/2026">
+      </div>
+      <div class="field">
+        <label for="debriefTime">Debrief Time</label>
+        <input type="text" id="debriefTime" value="17:00 h" placeholder="e.g. 17:00 h">
+      </div>
+      <div class="field">
+        <label for="debriefLink">Meeting Link</label>
+        <input type="text" id="debriefLink" value="https://meet.google.com/liw-izs-xcx" placeholder="https://meet.google.com/...">
+      </div>
+    </div>
+
+    <button type="button" class="download-btn" id="downloadBtn" disabled>Choose a template above to continue</button>
     <div class="status-msg" id="statusMsg"></div>
   </div>
 
@@ -305,68 +358,67 @@
 const LOGO_SRC = "Blue-Logo (1).png";
 const GMAIL_URL = "https://mail.google.com/mail/u/4/?ik=fddebf9a8a&amp;view=pt&amp;search=all&amp;permthid=thread-f:1874495397071311277&amp;simpl=msg-f:1874495397071311277";
 
-let visaRequired = null; // true | false
+let activeTemplate = null; // 'visa' | 'novisa' | 'debrief'
 
 const els = {
-  btnYes: document.getElementById('btnYes'),
-  btnNo: document.getElementById('btnNo'),
+  tplVisa: document.getElementById('tplVisa'),
+  tplNoVisa: document.getElementById('tplNoVisa'),
+  tplDebrief: document.getElementById('tplDebrief'),
+  commonFields: document.getElementById('commonFields'),
+  visaFields: document.getElementById('visaFields'),
+  noVisaFields: document.getElementById('noVisaFields'),
+  debriefFields: document.getElementById('debriefFields'),
   toEmail: document.getElementById('toEmail'),
   epName: document.getElementById('epName'),
   epId: document.getElementById('epId'),
+  epId2: document.getElementById('epId2'),
   sendDate: document.getElementById('sendDate'),
   dateHint: document.getElementById('dateHint'),
-  noVisaFields: document.getElementById('noVisaFields'),
   lcName: document.getElementById('lcName'),
   hostCountry: document.getElementById('hostCountry'),
+  debriefDate: document.getElementById('debriefDate'),
+  debriefTime: document.getElementById('debriefTime'),
+  debriefLink: document.getElementById('debriefLink'),
   downloadBtn: document.getElementById('downloadBtn'),
   statusMsg: document.getElementById('statusMsg'),
   previewRoot: document.getElementById('previewRoot')
 };
 
 function escapeHtml(str){
-  return (str || '').replace(/[&<>"']/g, function(c){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-  });
+  return (str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function formatSendDate(value){
   if(!value) return '';
   const d = new Date(value);
   if(isNaN(d.getTime())) return '';
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let h = d.getHours();
-  const min = String(d.getMinutes()).padStart(2,'0');
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12; if(h === 0) h = 12;
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let h=d.getHours(); const min=String(d.getMinutes()).padStart(2,'0');
+  const ampm=h>=12?'PM':'AM'; h=h%12; if(h===0)h=12;
   return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${h}:${min} ${ampm}`;
 }
 
 function formatPrintTimestamp(date){
-  const months = [1,2,3,4,5,6,7,8,9,10,11,12];
-  const mm = date.getMonth() + 1;
-  const dd = date.getDate();
-  const yy = String(date.getFullYear()).slice(-2);
-  let h = date.getHours();
-  const min = String(date.getMinutes()).padStart(2,'0');
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12; if(h === 0) h = 12;
+  const mm=date.getMonth()+1, dd=date.getDate(), yy=String(date.getFullYear()).slice(-2);
+  let h=date.getHours(); const min=String(date.getMinutes()).padStart(2,'0');
+  const ampm=h>=12?'PM':'AM'; h=h%12; if(h===0)h=12;
   return `${mm}/${dd}/${yy}, ${h}:${min} ${ampm}`;
 }
 
-function printHeaderHtml(){
+function printHeaderHtml(title){
   const ts = formatPrintTimestamp(new Date());
-  return `<div class="print-header"><span>${ts}</span><span>AIESEC Mail - Visa Application Steps — AIESEC BARDO</span></div>`;
+  return `<div class="print-header"><span>${ts}</span><span>AIESEC Mail - ${escapeHtml(title)} — AIESEC BARDO</span></div>`;
 }
 
-function metaBlockHtml(toEmail, sendDateFormatted){
+function metaBlockHtml(toEmail, sendDateFormatted, subject){
   return `
   <div class="gmail-top-row">
     <img class="aiesec-mini-logo" src="${LOGO_SRC}" alt="AIESEC" />
     <span class="thread-sender">Rayen Ouerghui &lt;rayenouerghui@aiesec.net&gt;</span>
   </div>
   <hr class="sep">
-  <p class="subject">Visa Application Steps — AIESEC BARDO</p>
+  <p class="subject">${escapeHtml(subject)}</p>
   <p class="message-count">1 message</p>
   <div class="meta-block">
     <div class="meta-row-top">
@@ -402,7 +454,6 @@ function buildVisaRequiredPages(data){
       <li>Visa application form</li>
     </ul>
   </div>`;
-
   const page2Body = `
   <div class="body-text">
     <p class="subhead">3. Submit Your Application:</p>
@@ -415,16 +466,17 @@ function buildVisaRequiredPages(data){
     <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
     <p>52129657</p>
   </div>`;
-
-  const page1 = `<div class="page">${printHeaderHtml()}${metaBlockHtml(data.toEmail, data.sendDateFormatted)}${page1Body}${footerHtml(1,2)}</div>`;
-  const page2 = `<div class="page">${printHeaderHtml()}${page2Body}${footerHtml(2,2)}</div>`;
+  const title = 'Visa Application Steps';
+  const page1 = `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${page1Body}${footerHtml(1,2)}</div>`;
+  const page2 = `<div class="page">${printHeaderHtml(title)}${page2Body}${footerHtml(2,2)}</div>`;
   return page1 + page2;
 }
 
 function buildNoVisaPage(data){
+  const title = 'No Visa Needed';
   const body = `
   <div class="body-text">
-    <p>Dear <strong class="name-blue">${escapeHtml(data.epName)}</strong> (${escapeHtml(data.epId)}),</p>
+    <p>Dear <strong class="name-blue">${escapeHtml(data.epName)}</strong> (${escapeHtml(data.epId2)}),</p>
     <p>I hope this email finds you well.</p>
     <p>Congratulations once again on your upcoming AIESEC experience with <strong>${escapeHtml(data.lcName)}</strong>, ${escapeHtml(data.hostCountry)}!</p>
     <p>We're happy to inform you that no visa is required for your travel to this country, which means your preparation will be smoother and faster.</p>
@@ -437,7 +489,37 @@ function buildNoVisaPage(data){
     <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
     <p>52129657</p>
   </div>`;
-  return `<div class="page">${printHeaderHtml()}${metaBlockHtml(data.toEmail, data.sendDateFormatted)}${body}${footerHtml(1,1)}</div>`;
+  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${footerHtml(1,1)}</div>`;
+}
+
+function buildDebriefPage(data){
+  const title = 'Invitation to the Debrief';
+  const body = `
+  <div class="body-text">
+    <p>Hello <strong class="name-blue">${escapeHtml(data.epName)}</strong>,</p>
+    <p>I hope this email finds you well.</p>
+    <p>As you have now completed your exchange experience, we would like to invite you to the <strong>Debrief</strong>, which marks the final stage of your journey. This session will allow you to reflect on your experience, share your insights, and close your exchange in the best way possible.</p>
+    <p><strong>Your attendance is important.</strong></p>
+    <p>
+      📅 Date: <strong>${escapeHtml(data.debriefDate)}</strong><br>
+      🕒 Time: <strong>${escapeHtml(data.debriefTime)}</strong><br>
+      📍 Location: <a class="meet-link" href="${escapeHtml(data.debriefLink)}">${escapeHtml(data.debriefLink)}</a>
+    </p>
+    <p>This seminar will help you:</p>
+    <p>
+      ✅ Reflect on your exchange experience and key learnings<br>
+      ✅ Share your feedback and personal journey<br>
+      ✅ Understand how to stay engaged with AIESEC after your experience
+    </p>
+    <p>Please confirm your attendance by replying to this email.</p>
+    <p>We are looking forward to hearing about your experience.</p>
+    <p style="margin-bottom:2px;">Sincerely,</p>
+    <p style="margin-bottom:2px;"><strong class="name-blue">Rayen Ouerghui</strong></p>
+    <p style="margin-bottom:2px;">TL | AIESEC BARDO</p>
+    <p style="margin-bottom:2px;">rayen.ouerghui@aiesec.net</p>
+    <p>+216 52129657</p>
+  </div>`;
+  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${footerHtml(1,1)}</div>`;
 }
 
 function currentData(){
@@ -445,50 +527,63 @@ function currentData(){
     toEmail: els.toEmail.value.trim(),
     epName: els.epName.value.trim(),
     epId: els.epId.value.trim(),
+    epId2: els.epId2.value.trim(),
     sendDateFormatted: formatSendDate(els.sendDate.value),
     lcName: els.lcName.value.trim(),
-    hostCountry: els.hostCountry.value.trim()
+    hostCountry: els.hostCountry.value.trim(),
+    debriefDate: els.debriefDate.value.trim(),
+    debriefTime: els.debriefTime.value.trim(),
+    debriefLink: els.debriefLink.value.trim()
   };
+}
+
+function setTemplate(tpl){
+  activeTemplate = tpl;
+  [els.tplVisa, els.tplNoVisa, els.tplDebrief].forEach(b => b.classList.remove('active'));
+  els.commonFields.style.display = 'block';
+  els.visaFields.style.display = 'none';
+  els.noVisaFields.style.display = 'none';
+  els.debriefFields.style.display = 'none';
+
+  if(tpl === 'visa'){
+    els.tplVisa.classList.add('active');
+    els.visaFields.style.display = 'block';
+  } else if(tpl === 'novisa'){
+    els.tplNoVisa.classList.add('active');
+    els.noVisaFields.style.display = 'block';
+  } else if(tpl === 'debrief'){
+    els.tplDebrief.classList.add('active');
+    els.debriefFields.style.display = 'block';
+  }
+  render();
 }
 
 function render(){
   els.dateHint.textContent = 'Will display as: ' + (formatSendDate(els.sendDate.value) || '—');
-
-  if(visaRequired === null){
+  if(!activeTemplate){
     els.previewRoot.innerHTML = '';
     els.downloadBtn.disabled = true;
-    els.downloadBtn.textContent = 'Choose visa status above to continue';
+    els.downloadBtn.textContent = 'Choose a template above to continue';
     return;
   }
-
   const data = currentData();
-  els.previewRoot.innerHTML = visaRequired ? buildVisaRequiredPages(data) : buildNoVisaPage(data);
+  if(activeTemplate === 'visa') els.previewRoot.innerHTML = buildVisaRequiredPages(data);
+  else if(activeTemplate === 'novisa') els.previewRoot.innerHTML = buildNoVisaPage(data);
+  else if(activeTemplate === 'debrief') els.previewRoot.innerHTML = buildDebriefPage(data);
   els.downloadBtn.disabled = false;
   els.downloadBtn.textContent = 'Download PDF';
 }
 
-els.btnYes.addEventListener('click', () => {
-  visaRequired = true;
-  els.btnYes.classList.add('active-yes');
-  els.btnNo.classList.remove('active-no');
-  els.noVisaFields.style.display = 'none';
-  render();
-});
+els.tplVisa.addEventListener('click', () => setTemplate('visa'));
+els.tplNoVisa.addEventListener('click', () => setTemplate('novisa'));
+els.tplDebrief.addEventListener('click', () => setTemplate('debrief'));
 
-els.btnNo.addEventListener('click', () => {
-  visaRequired = false;
-  els.btnNo.classList.add('active-no');
-  els.btnYes.classList.remove('active-yes');
-  els.noVisaFields.style.display = 'block';
-  render();
-});
-
-[els.toEmail, els.epName, els.epId, els.sendDate, els.lcName, els.hostCountry].forEach(el => {
-  el.addEventListener('input', render);
-});
+[els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
+ els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink
+].forEach(el => el.addEventListener('input', render));
 
 els.downloadBtn.addEventListener('click', async () => {
-  if(visaRequired === null) return;
+  if(!activeTemplate) return;
   const wrap = els.previewRoot;
   wrap.classList.add('exporting');
   els.downloadBtn.disabled = true;
@@ -504,18 +599,15 @@ els.downloadBtn.addEventListener('click', async () => {
 
     for(let i = 0; i < pages.length; i++){
       const canvas = await html2canvas(pages[i], {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: pages[i].offsetWidth,
-        height: pages[i].offsetHeight
+        scale: 2, useCORS: true, backgroundColor: '#ffffff',
+        width: pages[i].offsetWidth, height: pages[i].offsetHeight
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
       if(i > 0) pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11);
     }
 
-    pdf.save(`AIESEC_Visa_Email_${namePart}.pdf`);
+    pdf.save(`AIESEC_${activeTemplate}_${namePart}.pdf`);
     wrap.classList.remove('exporting');
     els.downloadBtn.disabled = false;
     els.statusMsg.textContent = 'PDF downloaded ✓';
