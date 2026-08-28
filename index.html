@@ -303,6 +303,14 @@
     <!-- Common fields -->
     <div id="commonFields" style="display:none;">
       <div class="field">
+        <label for="senderName">Sender name (your LC name)</label>
+        <input type="text" id="senderName" value="AIESEC BARDO" placeholder="e.g. AIESEC BARDO">
+      </div>
+      <div class="field">
+        <label for="senderEmail">Sender email</label>
+        <input type="email" id="senderEmail" value="rayenouerghui@aiesec.net" placeholder="e.g. rayenouerghui@aiesec.net">
+      </div>
+      <div class="field">
         <label for="toEmail">To (recipient address)</label>
         <input type="email" id="toEmail" placeholder="recipient@example.com">
       </div>
@@ -419,6 +427,8 @@ const els = {
   replyEmail: document.getElementById('replyEmail'),
   replyDate: document.getElementById('replyDate'),
   replyText: document.getElementById('replyText'),
+  senderName: document.getElementById('senderName'),
+  senderEmail: document.getElementById('senderEmail'),
   toEmail: document.getElementById('toEmail'),
   epName: document.getElementById('epName'),
   epId: document.getElementById('epId'),
@@ -457,23 +467,23 @@ function formatPrintTimestamp(date){
   return `${mm}/${dd}/${yy}, ${h}:${min} ${ampm}`;
 }
 
-function printHeaderHtml(title){
+function printHeaderHtml(title, data){
   const ts = formatPrintTimestamp(new Date());
-  return `<div class="print-header"><span>${ts}</span><span>AIESEC Mail - ${escapeHtml(title)} — AIESEC BARDO</span></div>`;
+  return `<div class="print-header"><span>${ts}</span><span>AIESEC Mail - ${escapeHtml(title)} — ${escapeHtml(data.senderName)}</span></div>`;
 }
 
-function metaBlockHtml(toEmail, sendDateFormatted, subject){
+function metaBlockHtml(toEmail, sendDateFormatted, subject, data){
   return `
   <div class="gmail-top-row">
     <img class="aiesec-mini-logo" src="${LOGO_SRC}" alt="AIESEC" />
-    <span class="thread-sender">Rayen Ouerghui &lt;rayenouerghui@aiesec.net&gt;</span>
+    <span class="thread-sender">Rayen Ouerghui &lt;${escapeHtml(data.senderEmail)}&gt;</span>
   </div>
   <hr class="sep">
   <p class="subject">${escapeHtml(subject)}</p>
   <p class="message-count">1 message</p>
   <div class="meta-block">
     <div class="meta-row-top">
-      <span class="meta-sender-name">AIESEC BARDO &lt;rayenouerghui@aiesec.net&gt;</span>
+      <span class="meta-sender-name">${escapeHtml(data.senderName)} &lt;${escapeHtml(data.senderEmail)}&gt;</span>
       <span class="meta-datetime">${escapeHtml(sendDateFormatted)}</span>
     </div>
     <div>To: ${escapeHtml(toEmail)}</div>
@@ -490,7 +500,7 @@ function replyBlockHtml(data){
   return `
   <div class="reply-thread">
     <div class="reply-meta-row">
-      <span class="reply-sender-bold">${escapeHtml(data.replyName)} &lt;${escapeHtml(data.replyEmail)}&gt;<br><span style="font-weight:normal;">To: ${escapeHtml(data.toEmail)}</span></span>
+      <span class="reply-sender-bold">${escapeHtml(data.replyName)} &lt;${escapeHtml(data.replyEmail)}&gt;<br><span style="font-weight:normal;">To: ${escapeHtml(data.senderEmail)}</span></span>
       <span class="reply-datetime-right">${escapeHtml(data.replyDateFormatted)}</span>
     </div>
     <div style="margin-top:10px;">
@@ -533,8 +543,8 @@ function buildVisaRequiredPages(data){
     <p>52129657</p>
   </div>`;
   const title = 'Visa Application Steps';
-  const page1 = `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${page1Body}${footerHtml(1,2)}</div>`;
-  const page2 = `<div class="page">${printHeaderHtml(title)}${page2Body}${replyBlockHtml(data)}${footerHtml(2,2)}</div>`;
+  const page1 = `<div class="page">${printHeaderHtml(title,data)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title, data)}${page1Body}${footerHtml(1,2)}</div>`;
+  const page2 = `<div class="page">${printHeaderHtml(title,data)}${page2Body}${replyBlockHtml(data)}${footerHtml(2,2)}</div>`;
   return page1 + page2;
 }
 
@@ -555,7 +565,7 @@ function buildNoVisaPage(data){
     <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
     <p>52129657</p>
   </div>`;
-  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
+  return `<div class="page">${printHeaderHtml(title,data)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title, data)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
 function buildDebriefPage(data){
@@ -585,11 +595,13 @@ function buildDebriefPage(data){
     <p style="margin-bottom:2px;">rayen.ouerghui@aiesec.net</p>
     <p>+216 52129657</p>
   </div>`;
-  return `<div class="page">${printHeaderHtml(title)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
+  return `<div class="page">${printHeaderHtml(title,data)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title, data)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
 function currentData(){
   return {
+    senderName: els.senderName.value.trim() || 'AIESEC BARDO',
+    senderEmail: els.senderEmail.value.trim() || 'rayenouerghui@aiesec.net',
     toEmail: els.toEmail.value.trim(),
     epName: els.epName.value.trim(),
     epId: els.epId.value.trim(),
@@ -657,6 +669,7 @@ els.includeReply.addEventListener('change', () => {
 
 [els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
  els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink,
+ els.senderName, els.senderEmail,
  els.replyName, els.replyEmail, els.replyDate, els.replyText
 ].forEach(el => el.addEventListener('input', render));
 
