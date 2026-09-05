@@ -297,6 +297,7 @@
         <button type="button" class="tpl-btn" id="tplVisa">📋 Visa Application Steps</button>
         <button type="button" class="tpl-btn" id="tplNoVisa">✅ No Visa Needed</button>
         <button type="button" class="tpl-btn" id="tplDebrief">🎓 Invitation to the Debrief</button>
+        <button type="button" class="tpl-btn" id="tplGoal">🎯 Goal Setting Before Realization</button>
       </div>
     </div>
 
@@ -365,6 +366,14 @@
       </div>
     </div>
 
+    <!-- Goal setting extra fields -->
+    <div id="goalFields" class="conditional-block" style="display:none;">
+      <div class="field">
+        <label for="goalFormLink">Goals form link</label>
+        <input type="text" id="goalFormLink" value="LINK" placeholder="e.g. https://forms.gle/...">
+      </div>
+    </div>
+
     <!-- Reply block (shown after template is selected) -->
     <div id="replySection" class="conditional-block" style="display:none;">
       <div class="field" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
@@ -410,16 +419,19 @@
 const LOGO_SRC = "Blue-Logo (1).png";
 const GMAIL_URL = "https://mail.google.com/mail/u/4/?ik=fddebf9a8a&amp;view=pt&amp;search=all&amp;permthid=thread-f:1874495397071311277&amp;simpl=msg-f:1874495397071311277";
 
-let activeTemplate = null; // 'visa' | 'novisa' | 'debrief'
+let activeTemplate = null; // 'visa' | 'novisa' | 'debrief' | 'goal'
 
 const els = {
   tplVisa: document.getElementById('tplVisa'),
   tplNoVisa: document.getElementById('tplNoVisa'),
   tplDebrief: document.getElementById('tplDebrief'),
+  tplGoal: document.getElementById('tplGoal'),
   commonFields: document.getElementById('commonFields'),
   visaFields: document.getElementById('visaFields'),
   noVisaFields: document.getElementById('noVisaFields'),
   debriefFields: document.getElementById('debriefFields'),
+  goalFields: document.getElementById('goalFields'),
+  goalFormLink: document.getElementById('goalFormLink'),
   replySection: document.getElementById('replySection'),
   includeReply: document.getElementById('includeReply'),
   replyFields: document.getElementById('replyFields'),
@@ -598,6 +610,46 @@ function buildDebriefPage(data){
   return `<div class="page">${printHeaderHtml(title,data)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title, data)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
+function buildGoalPage(data){
+  const title = `Goal setting before realization- ${escapeHtml(data.senderName)}`;
+  const msgCount = data.includeReply ? '2 messages' : '1 message';
+  const body = `
+  <div class="body-text">
+    <p>Dear exchange participant,</p>
+    <p>We hope you're doing well!</p>
+    <p>Before you start your volunteering exchange, we would like you to take a moment to <strong>set your personal goals for this experience.</strong> 🎯</p>
+    <p>Think about what you would like to learn, improve, discover, or achieve during your exchange.</p>
+    <p>You can either:</p>
+    <ul>
+      <li><strong>Fill in the goals form:</strong> <a class="meet-link" href="${escapeHtml(data.goalFormLink)}">${escapeHtml(data.goalFormLink)}</a></li>
+      <li><strong>Or simply reply to this email</strong> with your goals.</li>
+    </ul>
+    <p>Please make sure to complete this <strong>before your departure</strong>, as your goals will help us follow your progress throughout the experience and make your exchange more meaningful.</p>
+    <p>If you have any questions, feel free to reach out to us.</p>
+    <p style="margin-bottom:2px;">Best regards,</p>
+    <p style="margin-bottom:2px;"><strong>Outgoing Volunteer Team</strong></p>
+    <p>AIESEC in Bardo</p>
+  </div>`;
+
+  const metaTop = `
+  <div class="gmail-top-row">
+    <img class="aiesec-mini-logo" src="${LOGO_SRC}" alt="AIESEC" />
+    <span class="thread-sender">Rayen Ouerghui &lt;${escapeHtml(data.senderEmail)}&gt;</span>
+  </div>
+  <hr class="sep">
+  <p class="subject" style="font-weight:bold;">${title}</p>
+  <p class="message-count">${msgCount}</p>
+  <div class="meta-block">
+    <div class="meta-row-top">
+      <span class="meta-sender-name">${escapeHtml(data.senderName)} &lt;${escapeHtml(data.senderEmail)}&gt;</span>
+      <span class="meta-datetime">${escapeHtml(data.sendDateFormatted)}</span>
+    </div>
+    <div>To: ${escapeHtml(data.toEmail)}</div>
+  </div>`;
+
+  return `<div class="page">${printHeaderHtml(title, data)}${metaTop}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
+}
+
 function currentData(){
   return {
     senderName: els.senderName.value.trim() || 'AIESEC BARDO',
@@ -612,6 +664,7 @@ function currentData(){
     debriefDate: els.debriefDate.value.trim(),
     debriefTime: els.debriefTime.value.trim(),
     debriefLink: els.debriefLink.value.trim(),
+    goalFormLink: els.goalFormLink.value.trim() || 'LINK',
     includeReply: els.includeReply.checked,
     replyName: els.replyName.value.trim(),
     replyEmail: els.replyEmail.value.trim(),
@@ -622,23 +675,18 @@ function currentData(){
 
 function setTemplate(tpl){
   activeTemplate = tpl;
-  [els.tplVisa, els.tplNoVisa, els.tplDebrief].forEach(b => b.classList.remove('active'));
+  [els.tplVisa, els.tplNoVisa, els.tplDebrief, els.tplGoal].forEach(b => b.classList.remove('active'));
   els.commonFields.style.display = 'block';
   els.visaFields.style.display = 'none';
   els.noVisaFields.style.display = 'none';
   els.debriefFields.style.display = 'none';
+  els.goalFields.style.display = 'none';
   els.replySection.style.display = 'block';
 
-  if(tpl === 'visa'){
-    els.tplVisa.classList.add('active');
-    els.visaFields.style.display = 'block';
-  } else if(tpl === 'novisa'){
-    els.tplNoVisa.classList.add('active');
-    els.noVisaFields.style.display = 'block';
-  } else if(tpl === 'debrief'){
-    els.tplDebrief.classList.add('active');
-    els.debriefFields.style.display = 'block';
-  }
+  if(tpl === 'visa'){ els.tplVisa.classList.add('active'); els.visaFields.style.display = 'block'; }
+  else if(tpl === 'novisa'){ els.tplNoVisa.classList.add('active'); els.noVisaFields.style.display = 'block'; }
+  else if(tpl === 'debrief'){ els.tplDebrief.classList.add('active'); els.debriefFields.style.display = 'block'; }
+  else if(tpl === 'goal'){ els.tplGoal.classList.add('active'); els.goalFields.style.display = 'block'; }
   render();
 }
 
@@ -654,6 +702,7 @@ function render(){
   if(activeTemplate === 'visa') els.previewRoot.innerHTML = buildVisaRequiredPages(data);
   else if(activeTemplate === 'novisa') els.previewRoot.innerHTML = buildNoVisaPage(data);
   else if(activeTemplate === 'debrief') els.previewRoot.innerHTML = buildDebriefPage(data);
+  else if(activeTemplate === 'goal') els.previewRoot.innerHTML = buildGoalPage(data);
   els.downloadBtn.disabled = false;
   els.downloadBtn.textContent = 'Download PDF';
 }
@@ -661,6 +710,7 @@ function render(){
 els.tplVisa.addEventListener('click', () => setTemplate('visa'));
 els.tplNoVisa.addEventListener('click', () => setTemplate('novisa'));
 els.tplDebrief.addEventListener('click', () => setTemplate('debrief'));
+els.tplGoal.addEventListener('click', () => setTemplate('goal'));
 
 els.includeReply.addEventListener('change', () => {
   els.replyFields.style.display = els.includeReply.checked ? 'block' : 'none';
@@ -669,7 +719,7 @@ els.includeReply.addEventListener('change', () => {
 
 [els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
  els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink,
- els.senderName, els.senderEmail,
+ els.senderName, els.senderEmail, els.goalFormLink,
  els.replyName, els.replyEmail, els.replyDate, els.replyText
 ].forEach(el => el.addEventListener('input', render));
 
