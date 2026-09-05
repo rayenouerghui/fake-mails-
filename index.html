@@ -304,6 +304,10 @@
     <!-- Common fields -->
     <div id="commonFields" style="display:none;">
       <div class="field">
+        <label for="senderFullName">Sender full name</label>
+        <input type="text" id="senderFullName" value="Rayen Ouerghui" placeholder="e.g. Rayen Ouerghui">
+      </div>
+      <div class="field">
         <label for="senderName">Sender name (your LC name)</label>
         <input type="text" id="senderName" value="AIESEC BARDO" placeholder="e.g. AIESEC BARDO">
       </div>
@@ -439,6 +443,7 @@ const els = {
   replyEmail: document.getElementById('replyEmail'),
   replyDate: document.getElementById('replyDate'),
   replyText: document.getElementById('replyText'),
+  senderFullName: document.getElementById('senderFullName'),
   senderName: document.getElementById('senderName'),
   senderEmail: document.getElementById('senderEmail'),
   toEmail: document.getElementById('toEmail'),
@@ -488,7 +493,7 @@ function metaBlockHtml(toEmail, sendDateFormatted, subject, data){
   return `
   <div class="gmail-top-row">
     <img class="aiesec-mini-logo" src="${LOGO_SRC}" alt="AIESEC" />
-    <span class="thread-sender">Rayen Ouerghui &lt;${escapeHtml(data.senderEmail)}&gt;</span>
+    <span class="thread-sender">${escapeHtml(data.senderFullName)} &lt;${escapeHtml(data.senderEmail)}&gt;</span>
   </div>
   <hr class="sep">
   <p class="subject">${escapeHtml(subject)}</p>
@@ -549,7 +554,7 @@ function buildVisaRequiredPages(data){
     <p>If you have any questions or face any difficulties during the process, please don't hesitate to reach out — we're here to assist you every step of the way.</p>
     <p>Thank you for your attention, and we wish you the best of luck with your visa application!</p>
     <p style="margin-bottom:2px;">Best regards,</p>
-    <p style="margin-bottom:2px;"><strong class="name-blue">Rayen Ouerghui</strong></p>
+    <p style="margin-bottom:2px;"><strong class="name-blue">${escapeHtml(data.senderFullName)}</strong></p>
     <p style="margin-bottom:2px;">TL OGT | AIESEC BARDO</p>
     <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
     <p>52129657</p>
@@ -572,7 +577,7 @@ function buildNoVisaPage(data){
     <p>If you need any assistance, feel free to reach out to us — we're always here to support you 💙</p>
     <p>Wishing you safe travels and a wonderful experience ahead!</p>
     <p style="margin-bottom:2px;">Best regards,</p>
-    <p style="margin-bottom:2px;"><strong class="name-blue">Rayen Ouerghui</strong></p>
+    <p style="margin-bottom:2px;"><strong class="name-blue">${escapeHtml(data.senderFullName)}</strong></p>
     <p style="margin-bottom:2px;">TL OGT | AIESEC BARDO</p>
     <p style="margin-bottom:2px;">rayenouerghui@aiesec.net</p>
     <p>52129657</p>
@@ -602,7 +607,7 @@ function buildDebriefPage(data){
     <p>Please confirm your attendance by replying to this email.</p>
     <p>We are looking forward to hearing about your experience.</p>
     <p style="margin-bottom:2px;">Sincerely,</p>
-    <p style="margin-bottom:2px;"><strong class="name-blue">Rayen Ouerghui</strong></p>
+    <p style="margin-bottom:2px;"><strong class="name-blue">${escapeHtml(data.senderFullName)}</strong></p>
     <p style="margin-bottom:2px;">TL | AIESEC BARDO</p>
     <p style="margin-bottom:2px;">rayen.ouerghui@aiesec.net</p>
     <p>+216 52129657</p>
@@ -634,7 +639,7 @@ function buildGoalPage(data){
   const metaTop = `
   <div class="gmail-top-row">
     <img class="aiesec-mini-logo" src="${LOGO_SRC}" alt="AIESEC" />
-    <span class="thread-sender">Rayen Ouerghui &lt;${escapeHtml(data.senderEmail)}&gt;</span>
+    <span class="thread-sender">${escapeHtml(data.senderFullName)} &lt;${escapeHtml(data.senderEmail)}&gt;</span>
   </div>
   <hr class="sep">
   <p class="subject" style="font-weight:bold;">${title}</p>
@@ -652,6 +657,7 @@ function buildGoalPage(data){
 
 function currentData(){
   return {
+    senderFullName: els.senderFullName.value.trim() || 'Rayen Ouerghui',
     senderName: els.senderName.value.trim() || 'AIESEC BARDO',
     senderEmail: els.senderEmail.value.trim() || 'rayenouerghui@aiesec.net',
     toEmail: els.toEmail.value.trim(),
@@ -719,7 +725,7 @@ els.includeReply.addEventListener('change', () => {
 
 [els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
  els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink,
- els.senderName, els.senderEmail, els.goalFormLink,
+ els.senderName, els.senderEmail, els.senderFullName, els.goalFormLink,
  els.replyName, els.replyEmail, els.replyDate, els.replyText
 ].forEach(el => el.addEventListener('input', render));
 
