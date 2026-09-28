@@ -279,6 +279,22 @@
   .reply-to-line { font-size: 12px; color: #202124; margin-bottom: 10px; }
   .reply-body-text { font-size: 13.5px; color: #202124; line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-bottom: 6px; }
   .reply-quoted { font-size: 12px; color: #5f6368; }
+
+  /* ============ DEBRIEF V2 STYLES ============ */
+  .d2-body-text { font-size: 15.5px; color: #202124; line-height: 1.7; }
+  .d2-body-text p { margin: 0 0 18px 0; white-space: pre-wrap; }
+  .d2-signature-box { margin-top: 14px; }
+  .d2-arabic-mark {
+    width: 90px;
+    height: 90px;
+    margin: 10px 0 6px 0;
+    background: radial-gradient(circle at 30% 30%, #2b2b2b 0%, #1a1a1a 40%, #000 100%);
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='70' font-size='60' text-anchor='middle' font-family='serif' fill='black'>ب</text></svg>") no-repeat center / contain;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='70' font-size='60' text-anchor='middle' font-family='serif' fill='black'>ب</text></svg>") no-repeat center / contain;
+    display: inline-block;
+    opacity: 0.9;
+  }
+  .d2-link { color: #1155cc; text-decoration: underline; font-size: 15px; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -297,6 +313,7 @@
         <button type="button" class="tpl-btn" id="tplVisa">📋 Visa Application Steps</button>
         <button type="button" class="tpl-btn" id="tplNoVisa">✅ No Visa Needed</button>
         <button type="button" class="tpl-btn" id="tplDebrief">🎓 Invitation to the Debrief</button>
+        <button type="button" class="tpl-btn" id="tplDebriefV2">✨ Debrief Invitation V2 (Simple &amp; Clear)</button>
         <button type="button" class="tpl-btn" id="tplGoal">🎯 Goal Setting Before Realization</button>
       </div>
     </div>
@@ -370,6 +387,56 @@
       </div>
     </div>
 
+    <!-- Debrief V2 extra fields - fully modifiable -->
+    <div id="debriefV2Fields" class="conditional-block" style="display:none;">
+      <div class="field">
+        <label for="d2Subject">Email Subject</label>
+        <input type="text" id="d2Subject" value="Invitation to Post-Experience Debrief –08/01/2026 at 5:00PM" placeholder="Subject line">
+      </div>
+      <div class="field">
+        <label for="d2Greeting">Greeting</label>
+        <input type="text" id="d2Greeting" value="Hello dear Volunteer," placeholder="e.g. Hello dear Volunteer,">
+      </div>
+      <div class="field">
+        <label for="d2Intro">Opening Line</label>
+        <input type="text" id="d2Intro" value="I hope this message finds you well." placeholder="e.g. I hope this message finds you well.">
+      </div>
+      <div class="field">
+        <label for="d2InviteText">Invitation Text</label>
+        <textarea id="d2InviteText" rows="3" style="width:100%;padding:9px 10px;font-size:13.5px;border:1px solid #dadce0;border-radius:6px;font-family:Arial,Helvetica,sans-serif;resize:vertical;">We are pleased to invite you to a Post-Experience Debrief session scheduled for 1st August 2026 at 05:00PM.
+This debrief is a key opportunity to reflect on your experience, share insights, and provide valuable feedback that will help us improve the exchange journey for future participants.</textarea>
+      </div>
+      <div class="field">
+        <label for="d2DateLabel">Debrief Date (Display)</label>
+        <input type="text" id="d2DateLabel" value="1st August 2026" placeholder="e.g. 1st August 2026">
+      </div>
+      <div class="field">
+        <label for="d2TimeLabel">Debrief Time (Display)</label>
+        <input type="text" id="d2TimeLabel" value="05:00PM" placeholder="e.g. 05:00PM">
+      </div>
+      <div class="field">
+        <label for="d2Link">Meeting Link</label>
+        <input type="text" id="d2Link" value="https://meet.google.com/yso-wpvd-zcs" placeholder="https://meet.google.com/...">
+      </div>
+      <div class="field">
+        <label for="d2LinkLabel">Link Label</label>
+        <input type="text" id="d2LinkLabel" value="Here's the link to join:" placeholder="e.g. Here's the link to join:">
+      </div>
+      <div class="field">
+        <label for="d2ConfirmText">Confirmation Message</label>
+        <textarea id="d2ConfirmText" rows="2" style="width:100%;padding:9px 10px;font-size:13.5px;border:1px solid #dadce0;border-radius:6px;font-family:Arial,Helvetica,sans-serif;resize:vertical;">If you plan to attend, kindly confirm your participation by replying to this email with "I confirm."
+Should you have any questions or need further details, feel free to reach out.</textarea>
+      </div>
+      <div class="field">
+        <label for="d2Closing">Closing</label>
+        <input type="text" id="d2Closing" value="Best regards," placeholder="e.g. Best regards,">
+      </div>
+      <div class="field">
+        <label for="d2SignName">Signature Name</label>
+        <input type="text" id="d2SignName" value="Emna ben fadhel." placeholder="e.g. Emna ben fadhel.">
+      </div>
+    </div>
+
     <!-- Goal setting extra fields -->
     <div id="goalFields" class="conditional-block" style="display:none;">
       <div class="field">
@@ -429,11 +496,13 @@ const els = {
   tplVisa: document.getElementById('tplVisa'),
   tplNoVisa: document.getElementById('tplNoVisa'),
   tplDebrief: document.getElementById('tplDebrief'),
+  tplDebriefV2: document.getElementById('tplDebriefV2'),
   tplGoal: document.getElementById('tplGoal'),
   commonFields: document.getElementById('commonFields'),
   visaFields: document.getElementById('visaFields'),
   noVisaFields: document.getElementById('noVisaFields'),
   debriefFields: document.getElementById('debriefFields'),
+  debriefV2Fields: document.getElementById('debriefV2Fields'),
   goalFields: document.getElementById('goalFields'),
   goalFormLink: document.getElementById('goalFormLink'),
   replySection: document.getElementById('replySection'),
@@ -457,6 +526,17 @@ const els = {
   debriefDate: document.getElementById('debriefDate'),
   debriefTime: document.getElementById('debriefTime'),
   debriefLink: document.getElementById('debriefLink'),
+  d2Subject: document.getElementById('d2Subject'),
+  d2Greeting: document.getElementById('d2Greeting'),
+  d2Intro: document.getElementById('d2Intro'),
+  d2InviteText: document.getElementById('d2InviteText'),
+  d2DateLabel: document.getElementById('d2DateLabel'),
+  d2TimeLabel: document.getElementById('d2TimeLabel'),
+  d2Link: document.getElementById('d2Link'),
+  d2LinkLabel: document.getElementById('d2LinkLabel'),
+  d2ConfirmText: document.getElementById('d2ConfirmText'),
+  d2Closing: document.getElementById('d2Closing'),
+  d2SignName: document.getElementById('d2SignName'),
   downloadBtn: document.getElementById('downloadBtn'),
   statusMsg: document.getElementById('statusMsg'),
   previewRoot: document.getElementById('previewRoot')
@@ -615,6 +695,28 @@ function buildDebriefPage(data){
   return `<div class="page">${printHeaderHtml(title,data)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title, data)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
+function buildDebriefV2Page(data){
+  const title = data.d2Subject || 'Invitation to Post-Experience Debrief';
+  const body = `
+  <div class="d2-body-text">
+    <p>${escapeHtml(data.d2Greeting)}</p>
+    <p>${escapeHtml(data.d2Intro)}</p>
+    <p>${escapeHtml(data.d2InviteText)}</p>
+    <p>${escapeHtml(data.d2LinkLabel)}<br><br><a class="d2-link" href="${escapeHtml(data.d2Link)}">${escapeHtml(data.d2Link)}</a></p>
+    <p>${escapeHtml(data.d2ConfirmText)}</p>
+    <div class="d2-signature-box">
+      <svg width="120" height="120" viewBox="0 0 120 120" style="display:block;margin:12px 0 8px 0;">
+        <path d="M20 90 Q30 40 55 45 Q75 48 70 30 Q65 15 85 20 Q100 25 95 50 Q92 70 75 75 Q60 80 65 95 Q70 108 45 100 Q25 95 20 90 Z M50 70 Q55 55 68 58 Q80 62 78 48 Q76 35 88 38" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M35 85 Q42 62 52 70 Q60 77 55 88 Q50 98 40 92" fill="#1a1a1a" opacity="0.9"/>
+        <ellipse cx="82" cy="28" rx="5" ry="4" fill="#1a1a1a"/>
+      </svg>
+      <p style="margin:0 0 2px 0;">${escapeHtml(data.d2Closing)}</p>
+      <p style="margin:0;"><strong>${escapeHtml(data.d2SignName)}</strong></p>
+    </div>
+  </div>`;
+  return `<div class="page">${printHeaderHtml(title,data)}${metaBlockHtml(data.toEmail, data.sendDateFormatted, title, data)}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
+}
+
 function buildGoalPage(data){
   const title = `Goal setting before realization- ${escapeHtml(data.senderName)}`;
   const msgCount = data.includeReply ? '2 messages' : '1 message';
@@ -670,6 +772,17 @@ function currentData(){
     debriefDate: els.debriefDate.value.trim(),
     debriefTime: els.debriefTime.value.trim(),
     debriefLink: els.debriefLink.value.trim(),
+    d2Subject: els.d2Subject.value.trim(),
+    d2Greeting: els.d2Greeting.value.trim(),
+    d2Intro: els.d2Intro.value.trim(),
+    d2InviteText: els.d2InviteText.value.trim(),
+    d2DateLabel: els.d2DateLabel.value.trim(),
+    d2TimeLabel: els.d2TimeLabel.value.trim(),
+    d2Link: els.d2Link.value.trim(),
+    d2LinkLabel: els.d2LinkLabel.value.trim(),
+    d2ConfirmText: els.d2ConfirmText.value.trim(),
+    d2Closing: els.d2Closing.value.trim(),
+    d2SignName: els.d2SignName.value.trim(),
     goalFormLink: els.goalFormLink.value.trim() || 'LINK',
     includeReply: els.includeReply.checked,
     replyName: els.replyName.value.trim(),
@@ -681,17 +794,19 @@ function currentData(){
 
 function setTemplate(tpl){
   activeTemplate = tpl;
-  [els.tplVisa, els.tplNoVisa, els.tplDebrief, els.tplGoal].forEach(b => b.classList.remove('active'));
+  [els.tplVisa, els.tplNoVisa, els.tplDebrief, els.tplDebriefV2, els.tplGoal].forEach(b => b.classList.remove('active'));
   els.commonFields.style.display = 'block';
   els.visaFields.style.display = 'none';
   els.noVisaFields.style.display = 'none';
   els.debriefFields.style.display = 'none';
+  els.debriefV2Fields.style.display = 'none';
   els.goalFields.style.display = 'none';
   els.replySection.style.display = 'block';
 
   if(tpl === 'visa'){ els.tplVisa.classList.add('active'); els.visaFields.style.display = 'block'; }
   else if(tpl === 'novisa'){ els.tplNoVisa.classList.add('active'); els.noVisaFields.style.display = 'block'; }
   else if(tpl === 'debrief'){ els.tplDebrief.classList.add('active'); els.debriefFields.style.display = 'block'; }
+  else if(tpl === 'debriefv2'){ els.tplDebriefV2.classList.add('active'); els.debriefV2Fields.style.display = 'block'; }
   else if(tpl === 'goal'){ els.tplGoal.classList.add('active'); els.goalFields.style.display = 'block'; }
   render();
 }
@@ -708,6 +823,7 @@ function render(){
   if(activeTemplate === 'visa') els.previewRoot.innerHTML = buildVisaRequiredPages(data);
   else if(activeTemplate === 'novisa') els.previewRoot.innerHTML = buildNoVisaPage(data);
   else if(activeTemplate === 'debrief') els.previewRoot.innerHTML = buildDebriefPage(data);
+  else if(activeTemplate === 'debriefv2') els.previewRoot.innerHTML = buildDebriefV2Page(data);
   else if(activeTemplate === 'goal') els.previewRoot.innerHTML = buildGoalPage(data);
   els.downloadBtn.disabled = false;
   els.downloadBtn.textContent = 'Download PDF';
@@ -716,6 +832,7 @@ function render(){
 els.tplVisa.addEventListener('click', () => setTemplate('visa'));
 els.tplNoVisa.addEventListener('click', () => setTemplate('novisa'));
 els.tplDebrief.addEventListener('click', () => setTemplate('debrief'));
+els.tplDebriefV2.addEventListener('click', () => setTemplate('debriefv2'));
 els.tplGoal.addEventListener('click', () => setTemplate('goal'));
 
 els.includeReply.addEventListener('change', () => {
@@ -726,7 +843,10 @@ els.includeReply.addEventListener('change', () => {
 [els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
  els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink,
  els.senderName, els.senderEmail, els.senderFullName, els.goalFormLink,
- els.replyName, els.replyEmail, els.replyDate, els.replyText
+ els.replyName, els.replyEmail, els.replyDate, els.replyText,
+ els.d2Subject, els.d2Greeting, els.d2Intro, els.d2InviteText,
+ els.d2DateLabel, els.d2TimeLabel, els.d2Link, els.d2LinkLabel,
+ els.d2ConfirmText, els.d2Closing, els.d2SignName
 ].forEach(el => el.addEventListener('input', render));
 
 els.downloadBtn.addEventListener('click', async () => {
