@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --blue:#1155cc;
@@ -484,23 +485,24 @@
       </div>
       <div id="bulkFields" style="display:none;">
         <div class="field" style="margin-bottom:8px;">
-          <label for="bulkEmails">Recipient Emails (one per line)</label>
-          <textarea id="bulkEmails" class="bulk-list" rows="8" placeholder="aziz.brb93@gmail.com
-john.doe@example.com
-jane.smith@aiesec.net
+          <label for="bulkEmails">Recipient List — format: <code>Name,Email</code> or <code>Email</code> (one per line)</label>
+          <textarea id="bulkEmails" class="bulk-list" rows="10" placeholder="Aziz Ben Rebah, aziz.brb93@gmail.com
+John Doe, john.doe@example.com
+Jane Smith, jane.smith@aiesec.net
+or just:
 volunteer@email.com
-...">aziz.brb93@gmail.com
-user2@example.com
-user3@example.com
-user4@example.com
-user5@example.com
-user6@example.com
-user7@example.com
-user8@example.com
-user9@example.com
-user10@example.com</textarea>
-          <div class="hint">One email address per line. All emails will be identical except the "To:" address.</div>
-          <div class="bulk-info" id="bulkCount"><strong>0</strong> valid emails detected.</div>
+...">Aziz Ben Rebah, aziz.brb93@gmail.com
+Yosr Abidi, yosr.abidi@example.com
+Mohamed Ali, mohamed.ali@example.com
+Sara Ben Salah, sara.bs@example.com
+Karim Dridi, karim.dridi@example.com
+Nour Houri, nour.houri@example.com
+Oussama Khelifi, oussama.k@example.com
+Melek Feki, melek.feki@example.com
+Rim Gharbi, rim.gharbi@example.com
+Fares Masmoudi, fares.masmoudi@example.com</textarea>
+          <div class="hint">Separate name and email with a comma. If you provide only an email, the part before <code>@</code> is used as the file name. All emails will be identical except the "To:" address.</div>
+          <div class="bulk-info" id="bulkCount"><strong>0</strong> valid entries detected.</div>
         </div>
       </div>
     </div>
@@ -852,14 +854,14 @@ function render(){
   else if(activeTemplate === 'debriefv2') els.previewRoot.innerHTML = buildDebriefV2Page(data);
   else if(activeTemplate === 'goal') els.previewRoot.innerHTML = buildGoalPage(data);
   const bulkMode = els.bulkEnabled.checked;
-  const emails = bulkMode ? parseBulkEmails() : [];
+  const entries = bulkMode ? parseBulkEntries() : [];
   els.downloadBtn.disabled = false;
   if(bulkMode){
-    if(emails.length === 0){
+    if(entries.length === 0){
       els.downloadBtn.disabled = true;
-      els.downloadBtn.textContent = 'Enter at least 1 valid email in the bulk list';
+      els.downloadBtn.textContent = 'Enter at least 1 valid recipient in the bulk list';
     } else {
-      els.downloadBtn.textContent = `📦 Download Bulk PDF (${emails.length} emails)`;
+      els.downloadBtn.textContent = `📁 Download ZIP (${entries.length} individual PDFs)`;
     }
   } else {
     els.downloadBtn.textContent = 'Download PDF';
@@ -899,15 +901,34 @@ function isValidEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
 }
 
-function parseBulkEmails(){
+function parseBulkEntries(){
   const raw = els.bulkEmails.value || '';
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  return lines.filter(isValidEmail);
+  const entries = [];
+  for(const line of lines){
+    const commaIdx = line.lastIndexOf(',');
+    let name, email;
+    if(commaIdx !== -1){
+      name = line.slice(0, commaIdx).trim();
+      email = line.slice(commaIdx + 1).trim();
+    } else {
+      email = line;
+      name = email.split('@')[0] || email;
+    }
+    if(isValidEmail(email)){
+      entries.push({ name: name || email.split('@')[0] || email, email });
+    }
+  }
+  return entries;
+}
+
+function parseBulkEmails(){
+  return parseBulkEntries().map(e => e.email);
 }
 
 function updateBulkCount(){
-  const list = parseBulkEmails();
-  els.bulkCount.innerHTML = `<strong>${list.length}</strong> valid email${list.length === 1 ? '' : 's'} detected.`;
+  const entries = parseBulkEntries();
+  els.bulkCount.innerHTML = `<strong>${entries.length}</strong> valid recipient${entries.length === 1 ? '' : 's'} detected.`;
 }
 
 function buildTemplatePagesForData(tpl, data){
@@ -922,63 +943,104 @@ function buildTemplatePagesForData(tpl, data){
 els.downloadBtn.addEventListener('click', async () => {
   if(!activeTemplate) return;
   const bulkMode = els.bulkEnabled.checked;
-  const emails = bulkMode ? parseBulkEmails() : [];
-  if(bulkMode && emails.length === 0) return;
+  const entries = bulkMode ? parseBulkEntries() : [];
+  if(bulkMode && entries.length === 0) return;
 
   const wrap = els.previewRoot;
   wrap.classList.add('exporting');
   els.downloadBtn.disabled = true;
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
-
   const originalInner = wrap.innerHTML;
 
-  try {
-    const recipients = bulkMode ? emails : [null];
-    let firstPage = true;
-    const total = recipients.length;
+  function sanitizeFileName(str){
+    return String(str || 'file')
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80) || 'invitation';
+  }
 
-    for(let r = 0; r < total; r++){
-      const recipient = recipients[r];
-      const recipientLabel = recipient ? recipient.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') : '';
-      els.statusMsg.textContent = bulkMode
-        ? `Generating PDF… (${r + 1}/${total} — ${recipient})`
-        : 'Generating PDF…';
-
-      const data = currentData(recipient || undefined);
-      wrap.innerHTML = buildTemplatePagesForData(activeTemplate, data);
-      const pages = wrap.querySelectorAll('.page');
-
-      for(let i = 0; i < pages.length; i++){
-        const canvas = await html2canvas(pages[i], {
-          scale: 2, useCORS: true, backgroundColor: '#ffffff',
-          width: pages[i].offsetWidth, height: pages[i].offsetHeight
-        });
-        const imgData = canvas.toDataURL('image/jpeg', 0.98);
-        if(!firstPage) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11);
-        firstPage = false;
-      }
+  function templateLabel(){
+    switch(activeTemplate){
+      case 'visa': return 'Visa_Application_Steps';
+      case 'novisa': return 'No_Visa_Needed';
+      case 'debrief': return 'Debrief_Invitation';
+      case 'debriefv2': return 'Debrief_Invitation';
+      case 'goal': return 'Goal_Setting';
+      default: return 'Email';
     }
+  }
 
-    const sampleData = currentData();
-    const namePart = (sampleData.epName || (bulkMode ? 'bulk' : 'EP')).replace(/[^a-z0-9]+/gi, '_');
-    const suffix = bulkMode ? `_bulk_${total}_emails` : '';
-    pdf.save(`AIESEC_${activeTemplate}_${namePart}${suffix}.pdf`);
+  async function renderPagesToPdfBlob(recipientEmail){
+    const data = currentData(recipientEmail);
+    wrap.innerHTML = buildTemplatePagesForData(activeTemplate, data);
+    const pages = wrap.querySelectorAll('.page');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+    for(let i = 0; i < pages.length; i++){
+      const canvas = await html2canvas(pages[i], {
+        scale: 2, useCORS: true, backgroundColor: '#ffffff',
+        width: pages[i].offsetWidth, height: pages[i].offsetHeight
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      if(i > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11);
+    }
+    return pdf.output('blob');
+  }
 
-    wrap.innerHTML = originalInner;
-    wrap.classList.remove('exporting');
-    els.downloadBtn.disabled = false;
-    els.statusMsg.textContent = bulkMode
-      ? `Bulk PDF downloaded ✓ (${total} emails, ${total + (activeTemplate==='visa'?total:0)} pages)`
-      : 'PDF downloaded ✓';
-    setTimeout(() => { els.statusMsg.textContent = ''; }, 5000);
+  try {
+    if(bulkMode){
+      const total = entries.length;
+      const zip = new JSZip();
+      const folder = zip.folder(`AIESEC_${templateLabel()}_${total}_emails`);
+      for(let r = 0; r < total; r++){
+        const { name, email } = entries[r];
+        els.statusMsg.textContent = `Generating (${r + 1}/${total}) — ${name} <${email}>`;
+        const blob = await renderPagesToPdfBlob(email);
+        const fileName = `${sanitizeFileName(name)}_${templateLabel()}.pdf`;
+        folder.file(fileName, blob);
+      }
+      els.statusMsg.textContent = 'Packing ZIP…';
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `AIESEC_${templateLabel()}_bulk_${total}_emails.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      wrap.innerHTML = originalInner;
+      wrap.classList.remove('exporting');
+      els.downloadBtn.disabled = false;
+      els.statusMsg.textContent = `✅ ZIP downloaded (${total} PDFs). Extract the folder to see each person's invitation.`;
+      setTimeout(() => { els.statusMsg.textContent = ''; }, 7000);
+    } else {
+      els.statusMsg.textContent = 'Generating PDF…';
+      const sampleData = currentData();
+      const blob = await renderPagesToPdfBlob(undefined);
+      const namePart = sanitizeFileName(sampleData.epName || 'EP');
+      const fileName = `AIESEC_${activeTemplate}_${namePart}.pdf`;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      wrap.innerHTML = originalInner;
+      wrap.classList.remove('exporting');
+      els.downloadBtn.disabled = false;
+      els.statusMsg.textContent = 'PDF downloaded ✓';
+      setTimeout(() => { els.statusMsg.textContent = ''; }, 3000);
+    }
   } catch(err) {
     wrap.innerHTML = originalInner;
     wrap.classList.remove('exporting');
     els.downloadBtn.disabled = false;
-    els.statusMsg.textContent = 'Something went wrong generating the PDF.';
+    els.statusMsg.textContent = 'Something went wrong generating the files.';
     console.error(err);
   }
 });
