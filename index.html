@@ -295,6 +295,44 @@
     opacity: 0.9;
   }
   .d2-link { color: #1155cc; text-decoration: underline; font-size: 15px; word-break: break-all; }
+
+  /* ============ BULK GENERATION ============ */
+  .bulk-section {
+    border-top: 2px dashed var(--accent);
+    padding-top: 16px;
+    margin-top: 18px;
+  }
+  .bulk-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .bulk-toggle input { width: auto; margin: 0; cursor: pointer; }
+  .bulk-toggle label { margin: 0; font-size: 13px; font-weight: bold; cursor: pointer; color: var(--blue); }
+  .bulk-list {
+    width: 100%;
+    min-height: 120px;
+    padding: 9px 10px;
+    font-size: 13px;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  .bulk-list:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(3,126,243,0.15);
+  }
+  .bulk-info {
+    font-size: 12px;
+    color: #5f6368;
+    margin-top: 6px;
+    min-height: 14px;
+  }
+  .bulk-info strong { color: var(--blue); }
 </style>
 </head>
 <body>
@@ -438,6 +476,35 @@
       </div>
     </div>
 
+    <!-- Bulk generation section -->
+    <div class="bulk-section" id="bulkSection" style="display:none;">
+      <div class="bulk-toggle">
+        <input type="checkbox" id="bulkEnabled" style="width:auto;margin:0;">
+        <label for="bulkEnabled" style="margin:0;">📦 Bulk Generate (multiple recipients)</label>
+      </div>
+      <div id="bulkFields" style="display:none;">
+        <div class="field" style="margin-bottom:8px;">
+          <label for="bulkEmails">Recipient Emails (one per line)</label>
+          <textarea id="bulkEmails" class="bulk-list" rows="8" placeholder="aziz.brb93@gmail.com
+john.doe@example.com
+jane.smith@aiesec.net
+volunteer@email.com
+...">aziz.brb93@gmail.com
+user2@example.com
+user3@example.com
+user4@example.com
+user5@example.com
+user6@example.com
+user7@example.com
+user8@example.com
+user9@example.com
+user10@example.com</textarea>
+          <div class="hint">One email address per line. All emails will be identical except the "To:" address.</div>
+          <div class="bulk-info" id="bulkCount"><strong>0</strong> valid emails detected.</div>
+        </div>
+      </div>
+    </div>
+
     <button type="button" class="download-btn" id="downloadBtn" disabled>Choose a template above to continue</button>
     <div class="status-msg" id="statusMsg"></div>
   </div>
@@ -497,6 +564,11 @@ const els = {
   d2Subject: document.getElementById('d2Subject'),
   d2DateTime: document.getElementById('d2DateTime'),
   d2Link: document.getElementById('d2Link'),
+  bulkSection: document.getElementById('bulkSection'),
+  bulkEnabled: document.getElementById('bulkEnabled'),
+  bulkFields: document.getElementById('bulkFields'),
+  bulkEmails: document.getElementById('bulkEmails'),
+  bulkCount: document.getElementById('bulkCount'),
   downloadBtn: document.getElementById('downloadBtn'),
   statusMsg: document.getElementById('statusMsg'),
   previewRoot: document.getElementById('previewRoot')
@@ -717,12 +789,12 @@ function buildGoalPage(data){
   return `<div class="page">${printHeaderHtml(title, data)}${metaTop}${body}${replyBlockHtml(data)}${footerHtml(1,1)}</div>`;
 }
 
-function currentData(){
+function currentData(toEmailOverride){
   return {
     senderFullName: els.senderFullName.value.trim() || 'Rayen Ouerghui',
     senderName: els.senderName.value.trim() || 'AIESEC BARDO',
     senderEmail: els.senderEmail.value.trim() || 'rayenouerghui@aiesec.net',
-    toEmail: els.toEmail.value.trim(),
+    toEmail: (toEmailOverride !== undefined ? toEmailOverride : els.toEmail.value.trim()),
     epName: els.epName.value.trim(),
     epId: els.epId.value.trim(),
     epId2: els.epId2.value.trim(),
@@ -760,6 +832,8 @@ function setTemplate(tpl){
   else if(tpl === 'debrief'){ els.tplDebrief.classList.add('active'); els.debriefFields.style.display = 'block'; }
   else if(tpl === 'debriefv2'){ els.tplDebriefV2.classList.add('active'); els.debriefV2Fields.style.display = 'block'; }
   else if(tpl === 'goal'){ els.tplGoal.classList.add('active'); els.goalFields.style.display = 'block'; }
+  els.bulkSection.style.display = 'block';
+  updateBulkCount();
   render();
 }
 
@@ -777,8 +851,19 @@ function render(){
   else if(activeTemplate === 'debrief') els.previewRoot.innerHTML = buildDebriefPage(data);
   else if(activeTemplate === 'debriefv2') els.previewRoot.innerHTML = buildDebriefV2Page(data);
   else if(activeTemplate === 'goal') els.previewRoot.innerHTML = buildGoalPage(data);
+  const bulkMode = els.bulkEnabled.checked;
+  const emails = bulkMode ? parseBulkEmails() : [];
   els.downloadBtn.disabled = false;
-  els.downloadBtn.textContent = 'Download PDF';
+  if(bulkMode){
+    if(emails.length === 0){
+      els.downloadBtn.disabled = true;
+      els.downloadBtn.textContent = 'Enter at least 1 valid email in the bulk list';
+    } else {
+      els.downloadBtn.textContent = `📦 Download Bulk PDF (${emails.length} emails)`;
+    }
+  } else {
+    els.downloadBtn.textContent = 'Download PDF';
+  }
 }
 
 els.tplVisa.addEventListener('click', () => setTemplate('visa'));
@@ -792,6 +877,17 @@ els.includeReply.addEventListener('change', () => {
   render();
 });
 
+els.bulkEnabled.addEventListener('change', () => {
+  els.bulkFields.style.display = els.bulkEnabled.checked ? 'block' : 'none';
+  updateBulkCount();
+  render();
+});
+
+els.bulkEmails.addEventListener('input', () => {
+  updateBulkCount();
+  render();
+});
+
 [els.toEmail, els.epName, els.epId, els.epId2, els.sendDate,
  els.lcName, els.hostCountry, els.debriefDate, els.debriefTime, els.debriefLink,
  els.senderName, els.senderEmail, els.senderFullName, els.goalFormLink,
@@ -799,37 +895,87 @@ els.includeReply.addEventListener('change', () => {
  els.d2Subject, els.d2DateTime, els.d2Link
 ].forEach(el => el.addEventListener('input', render));
 
+function isValidEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+}
+
+function parseBulkEmails(){
+  const raw = els.bulkEmails.value || '';
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  return lines.filter(isValidEmail);
+}
+
+function updateBulkCount(){
+  const list = parseBulkEmails();
+  els.bulkCount.innerHTML = `<strong>${list.length}</strong> valid email${list.length === 1 ? '' : 's'} detected.`;
+}
+
+function buildTemplatePagesForData(tpl, data){
+  if(tpl === 'visa') return buildVisaRequiredPages(data);
+  if(tpl === 'novisa') return buildNoVisaPage(data);
+  if(tpl === 'debrief') return buildDebriefPage(data);
+  if(tpl === 'debriefv2') return buildDebriefV2Page(data);
+  if(tpl === 'goal') return buildGoalPage(data);
+  return '';
+}
+
 els.downloadBtn.addEventListener('click', async () => {
   if(!activeTemplate) return;
+  const bulkMode = els.bulkEnabled.checked;
+  const emails = bulkMode ? parseBulkEmails() : [];
+  if(bulkMode && emails.length === 0) return;
+
   const wrap = els.previewRoot;
   wrap.classList.add('exporting');
   els.downloadBtn.disabled = true;
-  els.statusMsg.textContent = 'Generating PDF…';
 
-  const data = currentData();
-  const namePart = (data.epName || 'EP').replace(/[^a-z0-9]+/gi, '_');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+
+  const originalInner = wrap.innerHTML;
 
   try {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
-    const pages = wrap.querySelectorAll('.page');
+    const recipients = bulkMode ? emails : [null];
+    let firstPage = true;
+    const total = recipients.length;
 
-    for(let i = 0; i < pages.length; i++){
-      const canvas = await html2canvas(pages[i], {
-        scale: 2, useCORS: true, backgroundColor: '#ffffff',
-        width: pages[i].offsetWidth, height: pages[i].offsetHeight
-      });
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
-      if(i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11);
+    for(let r = 0; r < total; r++){
+      const recipient = recipients[r];
+      const recipientLabel = recipient ? recipient.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') : '';
+      els.statusMsg.textContent = bulkMode
+        ? `Generating PDF… (${r + 1}/${total} — ${recipient})`
+        : 'Generating PDF…';
+
+      const data = currentData(recipient || undefined);
+      wrap.innerHTML = buildTemplatePagesForData(activeTemplate, data);
+      const pages = wrap.querySelectorAll('.page');
+
+      for(let i = 0; i < pages.length; i++){
+        const canvas = await html2canvas(pages[i], {
+          scale: 2, useCORS: true, backgroundColor: '#ffffff',
+          width: pages[i].offsetWidth, height: pages[i].offsetHeight
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        if(!firstPage) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11);
+        firstPage = false;
+      }
     }
 
-    pdf.save(`AIESEC_${activeTemplate}_${namePart}.pdf`);
+    const sampleData = currentData();
+    const namePart = (sampleData.epName || (bulkMode ? 'bulk' : 'EP')).replace(/[^a-z0-9]+/gi, '_');
+    const suffix = bulkMode ? `_bulk_${total}_emails` : '';
+    pdf.save(`AIESEC_${activeTemplate}_${namePart}${suffix}.pdf`);
+
+    wrap.innerHTML = originalInner;
     wrap.classList.remove('exporting');
     els.downloadBtn.disabled = false;
-    els.statusMsg.textContent = 'PDF downloaded ✓';
-    setTimeout(() => { els.statusMsg.textContent = ''; }, 3000);
+    els.statusMsg.textContent = bulkMode
+      ? `Bulk PDF downloaded ✓ (${total} emails, ${total + (activeTemplate==='visa'?total:0)} pages)`
+      : 'PDF downloaded ✓';
+    setTimeout(() => { els.statusMsg.textContent = ''; }, 5000);
   } catch(err) {
+    wrap.innerHTML = originalInner;
     wrap.classList.remove('exporting');
     els.downloadBtn.disabled = false;
     els.statusMsg.textContent = 'Something went wrong generating the PDF.';
